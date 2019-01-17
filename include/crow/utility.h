@@ -14,7 +14,6 @@ namespace crow
 {
     namespace black_magic
     {
-#ifndef CROW_MSVC_WORKAROUND
         struct OutOfRange
         {
             OutOfRange(unsigned /*pos*/, unsigned /*length*/) {}
@@ -121,7 +120,6 @@ namespace crow
         {
             return is_equ_n(s, i, "<path>", 0, 6);
         }
-#endif
         template <typename T> 
         struct parameter_tag
         {
@@ -212,7 +210,6 @@ struct parameter_tag<t> \
                     ) :
                 get_parameter_tag_runtime(s, p+1);
         }
-#ifndef CROW_MSVC_WORKAROUND
         constexpr uint64_t get_parameter_tag(const_str s, unsigned p = 0)
         {
             return
@@ -233,7 +230,6 @@ struct parameter_tag<t> \
                     ) : 
                 get_parameter_tag(s, p+1);
         }
-#endif
 
         template <typename ... T>
         struct S
@@ -457,7 +453,6 @@ template <typename F, typename Set>
         template<typename T> 
         struct function_traits;  
 
-#ifndef CROW_MSVC_WORKAROUND
         template<typename T> 
         struct function_traits : public function_traits<decltype(&T::operator())>
         {
@@ -468,7 +463,6 @@ template <typename F, typename Set>
             using arg = typename parent_t::template arg<i>;
         
         };  
-#endif
 
         template<typename ClassType, typename R, typename ...Args> 
         struct function_traits<R(ClassType::*)(Args...) const>

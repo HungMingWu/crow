@@ -374,27 +374,15 @@ namespace crow
         template <typename Func>
         void operator()(Func f)
         {
-#ifdef CROW_MSVC_WORKAROUND
-            using function_t = utility::function_traits<decltype(&Func::operator())>;
-#else
             using function_t = utility::function_traits<Func>;
-#endif
             erased_handler_ = wrap(std::move(f), black_magic::gen_seq<function_t::arity>());
         }
 
-#ifdef CROW_MSVC_WORKAROUND
-        template <typename Func, size_t ... Indices>
-#else
         template <typename Func, unsigned ... Indices>
-#endif
         std::function<void(const request&, response&, const routing_params&)> 
         wrap(Func f, black_magic::seq<Indices...>)
         {
-#ifdef CROW_MSVC_WORKAROUND
-            using function_t = utility::function_traits<decltype(&Func::operator())>;
-#else
             using function_t = utility::function_traits<Func>;
-#endif
             if (!black_magic::is_parameter_tag_compatible(
                 black_magic::get_parameter_tag_runtime(rule_.c_str()), 
                 black_magic::compute_parameter_tag_from_args_list<

@@ -19,11 +19,7 @@
 #include "crow/http_server.h"
 
 
-#ifdef CROW_MSVC_WORKAROUND
-#define CROW_ROUTE(app, url) app.route_dynamic(url)
-#else
 #define CROW_ROUTE(app, url) app.route<crow::black_magic::get_parameter_tag(url)>(url)
-#endif
 
 namespace crow
 {

@@ -95,12 +95,12 @@ namespace crow
 
         void after_handle(request& /*req*/, response& res, context& ctx)
         {
-            for(auto& cookie:ctx.cookies_to_add)
+            for (const auto& [key, value] : ctx.cookies_to_add)
             {
-                if (cookie.second.empty())
-                    res.add_header("Set-Cookie", cookie.first + "=\"\"");
+                if (value.empty())
+                    res.add_header("Set-Cookie", key + "=\"\"");
                 else
-                    res.add_header("Set-Cookie", cookie.first + "=" + cookie.second);
+                    res.add_header("Set-Cookie", key + "=" + value);
             }
         }
     };
