@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <string_view>
 #include "crow/utility.h"
 
 namespace crow
@@ -39,30 +40,41 @@ namespace crow
         // should not add an item below this line: used for array count
     };
 
-    inline std::string method_name(HTTPMethod method)
+    static constexpr std::string_view strDel("DELETE");
+    static constexpr std::string_view strGet("GET");
+    static constexpr std::string_view strHead("HEAD");
+    static constexpr std::string_view strPost("POST");
+    static constexpr std::string_view strPut("PUT");
+    static constexpr std::string_view strConnect("CONNECT");
+    static constexpr std::string_view strOptions("OPTIONS");
+    static constexpr std::string_view strTrace("TRACE");
+    static constexpr std::string_view strPatch("PATCH");
+    static constexpr std::string_view strPurge("PURGE");
+
+    inline std::string_view method_name(HTTPMethod method)
     {
         switch(method)
         {
             case HTTPMethod::Delete:
-                return "DELETE";
+                return strDel;
             case HTTPMethod::Get:
-                return "GET";
+                return strGet;
             case HTTPMethod::Head:
-                return "HEAD";
+                return strHead;
             case HTTPMethod::Post:
-                return "POST";
+                return strPost;
             case HTTPMethod::Put:
-                return "PUT";
+                return strPut;
             case HTTPMethod::Connect:
-                return "CONNECT";
+                return strConnect;
             case HTTPMethod::Options:
-                return "OPTIONS";
+                return strOptions;
             case HTTPMethod::Trace:
-                return "TRACE";
+                return strTrace;
             case HTTPMethod::Patch:
-                return "PATCH";
+                return strPatch;
             case HTTPMethod::Purge:
-                return "PURGE";
+                return strPurge;
             default:
                 return "invalid";
         }
@@ -134,18 +146,19 @@ namespace crow
     }
 }
 
-constexpr crow::HTTPMethod operator "" _method(const char* str, size_t /*len*/)
+constexpr crow::HTTPMethod operator "" _method(const char* str, size_t len)
 {
+    std::string_view strMethod(str, len);
     return
-        crow::black_magic::is_equ_p(str, "GET", 3) ? crow::HTTPMethod::Get :
-        crow::black_magic::is_equ_p(str, "DELETE", 6) ? crow::HTTPMethod::Delete :
-        crow::black_magic::is_equ_p(str, "HEAD", 4) ? crow::HTTPMethod::Head :
-        crow::black_magic::is_equ_p(str, "POST", 4) ? crow::HTTPMethod::Post :
-        crow::black_magic::is_equ_p(str, "PUT", 3) ? crow::HTTPMethod::Put :
-        crow::black_magic::is_equ_p(str, "OPTIONS", 7) ? crow::HTTPMethod::Options :
-        crow::black_magic::is_equ_p(str, "CONNECT", 7) ? crow::HTTPMethod::Connect :
-        crow::black_magic::is_equ_p(str, "TRACE", 5) ? crow::HTTPMethod::Trace :
-        crow::black_magic::is_equ_p(str, "PATCH", 5) ? crow::HTTPMethod::Patch :
-        crow::black_magic::is_equ_p(str, "PURGE", 5) ? crow::HTTPMethod::Purge :
+        strMethod == crow::strGet ? crow::HTTPMethod::Get :
+        strMethod == crow::strDel ? crow::HTTPMethod::Delete :
+        strMethod == crow::strHead ? crow::HTTPMethod::Head :
+        strMethod == crow::strPost ? crow::HTTPMethod::Post :
+        strMethod == crow::strPut ? crow::HTTPMethod::Put :
+        strMethod == crow::strOptions ? crow::HTTPMethod::Options :
+        strMethod == crow::strConnect ? crow::HTTPMethod::Connect :
+        strMethod == crow::strTrace ? crow::HTTPMethod::Trace :
+        strMethod == crow::strPatch ? crow::HTTPMethod::Patch :
+        strMethod == crow::strPurge ? crow::HTTPMethod::Purge :
         throw std::runtime_error("invalid http method");
 }

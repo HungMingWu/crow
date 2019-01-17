@@ -68,20 +68,6 @@ namespace crow
                 is_valid(s, i+1, f);
         }
 
-        constexpr bool is_equ_p(const char* a, const char* b, unsigned n)
-        {
-            return
-                *a == 0 && *b == 0 && n == 0 
-                    ? true :
-                (*a == 0 || *b == 0)
-                    ? false :
-                n == 0
-                    ? true :
-                *a != *b
-                    ? false :
-                is_equ_p(a+1, b+1, n-1);
-        }
-
         constexpr bool is_equ_n(const_str a, unsigned ai, const_str b, unsigned bi, unsigned n)
         {
             return 
