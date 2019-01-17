@@ -260,7 +260,8 @@ template <typename F, typename Set>
 
             static constexpr bool value = sizeof(__test<F, Args...>(0)) == sizeof(char);
         };
-
+        template <typename F, typename ...Args>
+        constexpr bool CallHelper_v = CallHelper<F, Args...>::value;
 
         template <int N>
         struct single_tag_to_type

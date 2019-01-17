@@ -39,9 +39,7 @@ namespace crow
         //struct context : private Middlewares::context... // simple but less type-safe
         {
             template <int N, typename Context, typename Container>
-            friend typename std::enable_if<(N==0)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res);
-            template <int N, typename Context, typename Container>
-            friend typename std::enable_if<(N>0)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res);
+            friend void after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res);
 
             template <int N, typename Context, typename Container, typename CurrentMW, typename ... Middlewares2>
             friend bool middleware_call_helper(Container& middlewares, request& req, response& res, Context& ctx);

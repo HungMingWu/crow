@@ -168,20 +168,20 @@ namespace crow
             struct Wrapped
             {
                 template <typename ... Args>
-                void set_(Func f, typename std::enable_if<
-                    !std::is_same<typename std::tuple_element<0, std::tuple<Args..., void>>::type, const request&>::value
-                , int>::type = 0)
+                void set_(Func f)
                 {
-                    handler_ = (
-#ifdef CROW_CAN_USE_CPP14
-                        [f = std::move(f)]
-#else
-                        [f]
-#endif
-                        (const request&, response& res, Args... args){
+                    constexpr bool firstArgTypeIsConstRequest = std::is_same_v<std::tuple_element_t<0, std::tuple<Args..., void>>, const request&>;
+                    constexpr bool secondArgTypeIResponse = std::is_same_v<std::tuple_element_t<1, std::tuple<Args..., void, void>>, response&>;
+                    if constexpr (!firstArgTypeIsConstRequest) {
+                        handler_ = [f = std::move(f)](const request&, response& res, Args... args){
                             res = response(f(args...));
                             res.end();
-                        });
+                        };
+                    } else if constexpr (firstArgTypeIsConstRequest && !secondArgTypeIResponse) {
+                        handler_ = req_handler_wrapper<Args...>(std::move(f));
+                    } else if constexpr (firstArgTypeIsConstRequest && secondArgTypeIResponse) {
+                        handler_ = std::move(f);
+		    }
                 }
 
                 template <typename Req, typename ... Args>
@@ -200,30 +200,6 @@ namespace crow
 
                     Func f;
                 };
-
-                template <typename ... Args>
-                void set_(Func f, typename std::enable_if<
-                        std::is_same<typename std::tuple_element<0, std::tuple<Args..., void>>::type, const request&>::value &&
-                        !std::is_same<typename std::tuple_element<1, std::tuple<Args..., void, void>>::type, response&>::value
-                        , int>::type = 0)
-                {
-                    handler_ = req_handler_wrapper<Args...>(std::move(f));
-                    /*handler_ = (
-                        [f = std::move(f)]
-                        (const request& req, response& res, Args... args){
-                             res = response(f(req, args...));
-                             res.end();
-                        });*/
-                }
-
-                template <typename ... Args>
-                void set_(Func f, typename std::enable_if<
-                        std::is_same<typename std::tuple_element<0, std::tuple<Args..., void>>::type, const request&>::value &&
-                        std::is_same<typename std::tuple_element<1, std::tuple<Args..., void, void>>::type, response&>::value
-                        , int>::type = 0)
-                {
-                    handler_ = std::move(f);
-                }
 
                 template <typename ... Args>
                 struct handler_type_helper
@@ -406,9 +382,6 @@ namespace crow
             erased_handler_ = wrap(std::move(f), black_magic::gen_seq<function_t::arity>());
         }
 
-        // enable_if Arg1 == request && Arg2 == response
-        // enable_if Arg1 == request && Arg2 != resposne
-        // enable_if Arg1 != request
 #ifdef CROW_MSVC_WORKAROUND
         template <typename Func, size_t ... Indices>
 #else
@@ -467,68 +440,39 @@ namespace crow
         }
 
         template <typename Func>
-        typename std::enable_if<black_magic::CallHelper<Func, black_magic::S<Args...>>::value, void>::type
-        operator()(Func&& f)
+        void operator()(Func&& f)
         {
-            static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value , 
-                "Handler type is mismatched with URL parameters");
-            static_assert(!std::is_same<void, decltype(f(std::declval<Args>()...))>::value, 
-                "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
+            constexpr bool rule1 = black_magic::CallHelper_v<Func, black_magic::S<Args...>>;
+            constexpr bool rule2 = black_magic::CallHelper_v<Func, black_magic::S<crow::request, Args...>>;
+            if constexpr (rule1) {
+                static_assert(rule1 || rule2,
+                    "Handler type is mismatched with URL parameters");
+                static_assert(!std::is_same_v<void, decltype(f(std::declval<Args>()...))>,
+                    "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
 
-            handler_ = (
-#ifdef CROW_CAN_USE_CPP14
-                [f = std::move(f)]
-#else
-                [f]
-#endif
-                (const request&, response& res, Args ... args){
+                handler_ = [f = std::move(f)](const request&, response& res, Args ... args){
                     res = response(f(args...));
                     res.end();
-                });
-        }
+                };
+            } else if constexpr (!rule1 && rule2) {
+                static_assert(rule1 || rule2,
+                    "Handler type is mismatched with URL parameters");
+                static_assert(!std::is_same_v<void, decltype(f(std::declval<crow::request>(), std::declval<Args>()...))>,
+                    "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
 
-        template <typename Func>
-        typename std::enable_if<
-            !black_magic::CallHelper<Func, black_magic::S<Args...>>::value &&
-            black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value, 
-            void>::type
-        operator()(Func&& f)
-        {
-            static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value, 
-                "Handler type is mismatched with URL parameters");
-            static_assert(!std::is_same<void, decltype(f(std::declval<crow::request>(), std::declval<Args>()...))>::value, 
-                "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
-
-            handler_ = (
-#ifdef CROW_CAN_USE_CPP14
-                [f = std::move(f)]
-#else
-                [f]
-#endif
-                (const crow::request& req, crow::response& res, Args ... args){
+                handler_ = [f = std::move(f)](const crow::request& req, crow::response& res, Args ... args){
                     res = response(f(req, args...));
                     res.end();
-                });
-        }
-
-        template <typename Func>
-        typename std::enable_if<
-            !black_magic::CallHelper<Func, black_magic::S<Args...>>::value &&
-            !black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value, 
-            void>::type
-        operator()(Func&& f)
-        {
-            static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, crow::response&, Args...>>::value
-                , 
-                "Handler type is mismatched with URL parameters");
-            static_assert(std::is_same<void, decltype(f(std::declval<crow::request>(), std::declval<crow::response&>(), std::declval<Args>()...))>::value, 
-                "Handler function with response argument should have void return type");
+                };
+            } else if constexpr (!rule1 && !rule2) {
+                constexpr bool rule3 = black_magic::CallHelper_v<Func, black_magic::S<crow::request, crow::response&, Args...>>;
+                static_assert(rule1 || rule2 || rule3,
+                    "Handler type is mismatched with URL parameters");
+                static_assert(std::is_same_v<void, decltype(f(std::declval<crow::request>(), std::declval<crow::response&>(), std::declval<Args>()...))>,
+                    "Handler function with response argument should have void return type");
 
                 handler_ = std::move(f);
+            }
         }
 
         template <typename Func>
